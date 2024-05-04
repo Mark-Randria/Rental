@@ -1,0 +1,73 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int                 @id @default(autoincrement())
+  username       String
+  email          String              @unique
+  hashedPassword String
+  profile        Profile?
+  role           Role                @default(USER)
+  items          Item[]
+  lentItems      RentalTransaction[] @relation(name: "lentItems")
+  rentedItems    RentalTransaction[] @relation(name: "rentedItems")
+}
+
+model Profile {
+  id     Int    @id @default(autoincrement())
+  bio    String
+  user   User   @relation(fields: [userId], references: [id])
+  userId Int    @unique
+}
+
+model Item {
+  id           Int                 @id @default(autoincrement())
+  name         String
+  description  String?
+  itemType     String
+  availability Boolean?            @default(true)
+  owner        User                @relation(fields: [ownerId], references: [id])
+  ownerId      Int
+  rentals      RentalTransaction[]
+}
+
+model RentalTransaction {
+  id              Int      @id @default(autoincrement())
+  rentalStartDate DateTime
+  rentalEndDate   DateTime
+  totalCost       Float
+  lender          User     @relation(name: "lentItems", fields: [lenderId], references: [id])
+  lenderId        Int
+  renter          User     @relation(name: "rentedItems", fields: [renterId], references: [id])
+  renterId        Int
+  item            Item     @relation(fields: [itemId], references: [id])
+  itemId          Int
+  payment         Payment?
+}
+
+model Payment {
+  paymentId     Int               @id @default(autoincrement())
+  amount        Float
+  paymentDate   DateTime          @default(now())
+  paymentStatus String
+  paymentMethod String
+  transaction   RentalTransaction @relation(fields: [transactionId], references: [id])
+  transactionId Int               @unique
+}
+
+enum Role {
+  USER
+  ADMIN
+}
